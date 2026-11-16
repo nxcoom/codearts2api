@@ -7,6 +7,32 @@
 ---
 
 <details open>
+<summary><b>2026-11-17 · 出口代理：把 OpenCode 式的每账号独立出口扩展到全部平台</b></summary>
+
+## 变更
+
+- **出站拦截器**（`src/core/egress/interceptor.ts`）：宿主在装插件前包装
+  `globalThis.fetch`，按绑定把请求路由到独立出口。上游五家（opencode/gemini/minimax/
+  qoder/monkeycode）自带每账号代理的请求走它们的 `proxyFetch`、不经过本层 —— 优先级
+  天然为「上游自带 > 宿主账号级 > 宿主平台级 > 直连」。`EGRESS_PROXY=0` 整体关闭。
+- **账号级识别**（`credential-index.ts`）：平台无关的「请求头鉴权材料 ↔ 凭据内容」
+  匹配。凭据用官方 `parseCredentialsDocument` 解析、账号表读 `jet-hub/state.json`
+  （与上游同一组归一化键），凭据续期自动重建索引。派生 token（如 zcode 远端换取的
+  api-key）匹配不到账号，由平台级兜底。
+- **平台级兜底**（`platform-hosts.ts`）：25 个平台的 API 域名表，host 反查；共享域名
+  （qoder 中国版/国际版）多候选逐个试绑定。`tests/egress-platform-hosts.test.ts` 对
+  上游 lib 做契约核对，上游换域名时测试先红。
+- **发送底座**（`proxy-fetch.ts`）：文件路径直插上游 `lib/opencode-proxy.js` 复用
+  `proxyFetch`（HTTP(S) ProxyAgent + 自实现 SOCKS5 隧道的那一份，雷区全在它注释里），
+  启动期逐项核对导出形状，上游改动启动即失败。
+- **绑定存储**：`<home>/proxy-bindings.json`（mtime+size 缓存，外部手改即时生效）。
+- **管理端**：顶栏新增「出口代理」页（每平台卡片：平台默认行 + 各账号行，行内
+  保存/清除/测试）；API 挂 `/admin/proxy/api`（GET overview、PUT 平台/账号、POST
+  test 回显出口 IP 与耗时），仍受管理密钥保护。
+
+</details>
+
+<details open>
 <summary><b>2026-11-16 · 后端分层重构 + 管理端登录前端化</b></summary>
 
 ## 变更

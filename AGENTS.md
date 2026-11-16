@@ -82,14 +82,17 @@ web/                       # 前端（Vite root，源码根）
     overview/   index.tsx · sections.tsx · Card/Cards/Section/ProviderHead.tsx · format.ts · Overview.module.less
     callers/    index.tsx · Section · GroupsTab/KeysTab/UsageTab/RecordsTab · DaysDropdown/FormModal/SecretModal · Callers.module.less
     channels/   index.tsx · ModelsPanel · ModelsPanelHost · ModelsPanel.module.less
+    proxy/      出口代理页（每账号/每平台两级绑定） · index.module.less
 
 src/                       # 后端（Node / Express，TypeScript，按职责分层）
-  index.ts                 进程入口：配置 → 装配 → 监听 → 信号退出
+  index.ts                 进程入口：egress 拦截器（先装）→ 装配 → 监听 → 信号退出
   server.ts                Express 应用装配（路由挂载）
   config/env.ts            环境变量解析（PORT/HOST/PROXY_GATEWAY/ADMIN_AUTH）
   core/                    home · logger · upstream(契约) · connection · errors · types · fs-store
+    core/egress/           出站代理：interceptor(全局 fetch 包装) · proxy-fetch(装上游 opencode-proxy.js) ·
+                           credential-index(鉴权材料↔账号) · bindings(proxy-bindings.json) · platform-hosts(域名表)
   host/host.ts             上游宿主装配（五服务 + 装插件 + 契约核对）★核心
-  http/                    body · security · request · respond · error（HTTP 基础设施/适配）
+  http/                    body · security · request · respond · error（HTTP 基础设施/适配）
   modules/                 领域模块（controller=HTTP 适配，service=业务）
     auth/                  auth.service · login.controller
     callers/               callers.service · callers.controller
@@ -98,6 +101,7 @@ src/                       # 后端（Node / Express，TypeScript，按职责分
     models/                models.service · models.controller
     oauth-relay/           oauth-relay.service · oauth-relay.controller
     gateway/               gateway.service · gateway.controller · gateway-key.service
+    proxy/                 proxy.controller（/admin/proxy/api：绑定读写 + 连通性测试）
     frontend/              frontend.controller
 
 tests/                     # 行为/UI 测试（Vitest，*.test.{ts,tsx}；组件用 jsdom）

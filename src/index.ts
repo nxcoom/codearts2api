@@ -23,6 +23,20 @@ import { createHttpServer } from "./server.ts"
 import { createCallerGate } from "./modules/caller-gate/caller-gate.service.ts"
 import { createUpstreamKeyReader } from "./modules/gateway/gateway-key.service.ts"
 import { resolvePort, resolveHost, resolveProxyGateway, resolveAdminAuth } from "./config/env.ts"
+import { installEgressInterceptor } from "./core/egress/interceptor.ts"
+
+// >>> egress interceptor
+// 必须在 createHost() **之前**装：上游插件内的适配器都是调用时查全局 fetch，
+// 先装才能让它们拿到包装后的版本。EGRESS_PROXY=0 整体关闭（直连，行为同旧版）。
+const egressEnabled = !/^(0|false|off|no)$/i.test(process.env.EGRESS_PROXY?.trim() ?? "")
+let egress: Awaited<ReturnType<typeof installEgressInterceptor>> | undefined
+if (egressEnabled) {
+  // home 与 createHost() 内部的 pinHome() 必须一致；这里先解一次只用于
+  // 确定绑定文件位置（拦截器本身不写文件）。
+  const { resolveHome } = await import("./core/home.ts")
+  egress = await installEgressInterceptor({ home: resolveHome(process.env), logger: console })
+}
+// <<< egress interceptor
 
 const host = await createHost()
 const port = resolvePort()
@@ -78,6 +92,9 @@ async function shutdown(signal) {
 
   await new Promise<void>((resolve) => server.close(() => resolve()))
   try {
+    // 先关代理连接池，再 dispose 插件：两者互不依赖，但先把出站面收干净
+    // 能避免 dispose 期间还有请求经缓存的 dispatcher 往外发。
+    if (egress !== undefined) await egress.internals.upstream.closeAllProxyDispatchers()
     await host.close()
   } catch (error) {
     console.error(`[codearts2api] 插件清理失败：${String(error)}`)

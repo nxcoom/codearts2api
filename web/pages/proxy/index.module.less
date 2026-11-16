@@ -1,0 +1,220 @@
+/* 出口代理页 —— 平台卡片 + 绑定行。配色沿用 App.less 的 --c2a-* 别名。 */
+
+.page {
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.head {
+  margin-bottom: 14px;
+}
+
+.title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--c2a-text);
+  margin: 0 0 6px;
+}
+
+.desc {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--c2a-text-2);
+  margin: 0;
+
+  code {
+    font-family: var(--c2a-mono);
+    font-size: 11.5px;
+    background: var(--c2a-surface-2);
+    border: 1px solid var(--c2a-border-soft);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin: 0 2px;
+  }
+}
+
+.card {
+  background: var(--c2a-surface);
+  border: 1px solid var(--c2a-border-soft);
+  border-radius: var(--c2a-radius);
+  box-shadow: var(--c2a-shadow);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.cardHead {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: var(--c2a-text);
+
+  &:hover {
+    background: var(--c2a-hover);
+  }
+}
+
+.chevron {
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--c2a-text-3);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+  transition: transform 0.15s;
+
+  &[data-open] {
+    transform: rotate(90deg);
+  }
+}
+
+.providerId {
+  font-family: var(--c2a-mono);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.bound,
+.nativeBadge {
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 1px 8px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+
+.bound {
+  color: var(--c2a-ok);
+  background: var(--c2a-ok-soft);
+}
+
+.nativeBadge {
+  color: var(--c2a-brand);
+  background: var(--c2a-brand-soft);
+}
+
+.count {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--c2a-text-3);
+}
+
+.cardBody {
+  border-top: 1px solid var(--c2a-border-soft);
+  padding: 8px 14px 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+}
+
+.rowLabel {
+  width: 220px;
+  flex: none;
+  font-size: 12.5px;
+  color: var(--c2a-text-2);
+  font-family: var(--c2a-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--c2a-mono);
+  font-size: 12.5px;
+  color: var(--c2a-text);
+  background: var(--c2a-surface-2);
+  border: 1px solid var(--c2a-border);
+  border-radius: var(--c2a-radius-sm);
+  padding: 5px 9px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--c2a-brand);
+    background: var(--c2a-surface);
+  }
+
+  &::placeholder {
+    color: var(--c2a-text-3);
+  }
+}
+
+.btn,
+.btnGhost {
+  flex: none;
+  font-size: 12px;
+  border-radius: var(--c2a-radius-sm);
+  padding: 5px 10px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  line-height: 16px;
+}
+
+.btn {
+  color: #fff;
+  background: var(--c2a-brand);
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+.btnGhost {
+  color: var(--c2a-text-2);
+  background: var(--c2a-surface);
+  border-color: var(--c2a-border);
+
+  &:hover:not(:disabled) {
+    background: var(--c2a-hover);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.msgOk,
+.msgErr {
+  flex: none;
+  font-size: 12px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.msgOk {
+  color: var(--c2a-ok);
+}
+
+.msgErr {
+  color: var(--c2a-err);
+}
+
+.empty {
+  padding: 6px 2px 2px;
+  font-size: 12px;
+  color: var(--c2a-text-3);
+}
+
+.errBox {
+  background: var(--c2a-err-soft);
+  color: var(--c2a-err);
+  border: 1px solid color-mix(in srgb, var(--c2a-err) 30%, transparent);
+  border-radius: var(--c2a-radius-sm);
+  padding: 8px 12px;
+  font-size: 12.5px;
+  margin-bottom: 10px;
+}

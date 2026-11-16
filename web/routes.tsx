@@ -7,6 +7,7 @@ import type { RouteObject } from "react-router-dom"
 // 即可按路由异步拆包（App 已包在 <Suspense> 里，无需其它改动）。
 import CallersPage from "./pages/callers/index"
 import ChannelsPage from "./pages/channels/index"
+import EgressProxyPage from "./pages/proxy/index"
 import OverviewPage from "./pages/overview/index"
 
 export const routes: RouteObject[] = [
@@ -14,5 +15,6 @@ export const routes: RouteObject[] = [
   { path: "/overview", element: <OverviewPage /> },
   { path: "/channels", element: <ChannelsPage /> },
   { path: "/callers", element: <CallersPage /> },
+  { path: "/proxy", element: <EgressProxyPage /> },
   { path: "*", element: <Navigate to="/overview" replace /> },
 ]

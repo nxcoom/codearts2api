@@ -23,6 +23,7 @@ import { providerIds, readGatewayState } from "./modules/gateway/gateway.service
 import { send, sendAdmin, sendAdminJson } from "./http/security.ts"
 import { createModelsController } from "./modules/models/models.controller.ts"
 import { createModelsService } from "./modules/models/models.service.ts"
+import { createProxyController } from "./modules/proxy/proxy.controller.ts"
 import { createOAuthRelay } from "./modules/oauth-relay/oauth-relay.controller.ts"
 import { CARRIER_PATH, JET_HUB_PATH, rpcEnvelope } from "./core/upstream.ts"
 
@@ -111,6 +112,7 @@ export async function createHttpServer(host, options: any = {}) {
   })
   const modelsService = createModelsService({ rpc: (method, payload) => adminRpc(method, payload, "models"), logger })
   const modelsAdmin = createModelsController({ service: modelsService })
+  const proxyAdmin = createProxyController({ home: host.home, logger })
 
   const throttle = new LoginThrottle()
   const { proxyToGateway } = createGatewayController({
@@ -189,7 +191,15 @@ export async function createHttpServer(host, options: any = {}) {
   // 路由命中，但也绝不能落到 SPA；这里统一按前缀跑鉴权中间件（仍返回 401/302，而不是 200 页面）。
   const protectedApi = express.Router({ caseSensitive: false })
   protectedApi.use(
-    ["/api/jet-hub", "/relay", "/admin/callers/api", "/admin/dashboard/api", "/admin/models/api", "/admin/oauth-relay"],
+    [
+      "/api/jet-hub",
+      "/relay",
+      "/admin/callers/api",
+      "/admin/dashboard/api",
+      "/admin/models/api",
+      "/admin/proxy/api",
+      "/admin/oauth-relay",
+    ],
     adminGuard,
   )
   app.use(protectedApi)
@@ -200,6 +210,7 @@ export async function createHttpServer(host, options: any = {}) {
   adminApi.use("/callers/api", adminGuard, callerAdmin.router)
   adminApi.use("/dashboard/api", adminGuard, dashboardAdmin.router)
   adminApi.use("/models/api", adminGuard, modelsAdmin.router)
+  adminApi.use("/proxy/api", adminGuard, proxyAdmin.router)
   adminApi.use("/oauth-relay", adminGuard, oauthRelay.replayRouter)
   app.use("/admin", adminApi)
   app.use("/relay", adminGuard, oauthRelay.relayRouter)
