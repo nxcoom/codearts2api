@@ -38,6 +38,7 @@
  */
 
 import { loadUpstreamProxyModule, type UpstreamProxyModule } from "./proxy-fetch.ts"
+import { relayFetch, parseRelayUrl } from "./relay-fetch.ts"
 import { candidateMaterials, createCredentialIndex, type CredentialIndex } from "./credential-index.ts"
 import { PLATFORM_HOSTS, platformsForUrl } from "./platform-hosts.ts"
 import { createBindingsStore, type BindingsStore } from "./bindings.ts"
@@ -73,8 +74,8 @@ export async function installEgressInterceptor(options: EgressOptions): Promise<
   const credentials = createCredentialIndex(options.home)
   const original = globalThis.fetch
 
-  /** 选出口：返回要走的代理（已归一化），undefined = 直通。 */
-  async function chooseProxy(input: unknown, init: RequestInit | undefined): Promise<unknown | undefined> {
+  /** 选出口：返回绑定原文（标准代理 URL / relay+ URL），undefined = 直通。 */
+  async function chooseProxy(input: unknown, init: RequestInit | undefined): Promise<string | undefined> {
     // ① URL 判据：相对 URL / 非 http(s) 不归本层。
     let urlText: string | undefined
     try {
@@ -108,53 +109,44 @@ export async function installEgressInterceptor(options: EgressOptions): Promise<
     }
     if (accountId === undefined && provider === undefined) {
       // ③ 平台级兜底：host 反查（共享域名可能有多个候选，见 platformsForUrl）。
-      const bound = await firstPlatformBinding(platformsForUrl(parsed))
-      if (bound !== undefined) return bound.proxy
+      for (const candidate of platformsForUrl(parsed)) {
+        const bound = await bindings.resolve(candidate, undefined)
+        if (bound !== undefined) return bound
+      }
       return undefined
     }
 
-    // ④ 查绑定（先账号级、后平台级，见 bindings.resolve）。
-    const bound = await bindings.resolve(provider, accountId)
-    if (bound === undefined) return undefined
+    // ④ 查绑定（先账号级、后平台级，见 bindings.resolve）。返回绑定原文
+    //    （标准代理 URL 或 relay+ URL），校验与分发在 wrapped 里。
+    return bindings.resolve(provider, accountId)
+  }
+
+  const wrapped: typeof fetch = async (input, init) => {
+    let bound: string | undefined
+    try {
+      bound = await chooseProxy(input, init)
+    } catch (error) {
+      // 判定层自身的意外错误绝不能拖垮业务请求：记日志、直通。
+      logger.warn(`[egress] 出口判定异常，已回退直连：${String(error)}`)
+      bound = undefined
+    }
+    if (bound === undefined) return original(input as any, init)
+
+    // 两种出口形态：relay 端点（relay+https://，Serverless 边缘场景）与标准代理
+    // （http/socks5 → 上游 proxyFetch）。relayFetch 注入**原始** fetch ——
+    // 转发请求带着原请求的鉴权头，若再走包装版会无限递归。
+    const relay = parseRelayUrl(bound)
+    if (relay !== undefined) return relayFetch(original, input as any, init, relay)
+
     const normalized = upstream.normalizeProxy(bound)
     if (!normalized.ok) {
       // 地址不合法：直通 + 告警。代理字符串来自用户配置，逐请求打会刷屏，
       // 但这是配置错误，宁可吵也不能无声。
-      logger.warn(
-        `[egress] 绑定的代理地址无效，已回退直连：${provider ?? "?"}${accountId ? `/${accountId}` : ""} — ${normalized.reason}`,
-      )
-      return undefined
+      logger.warn(`[egress] 绑定的代理地址无效，已回退直连：${bound} — ${normalized.reason}`)
+      return original(input as any, init)
     }
-    return normalized.proxy
-
-    /** 依次试各候选平台的平台级绑定，返回第一个有效的归一化代理。 */
-    async function firstPlatformBinding(candidates: readonly string[]): Promise<{ proxy: unknown } | undefined> {
-      for (const candidate of candidates) {
-        const url = await bindings.resolve(candidate, undefined)
-        if (url === undefined) continue
-        const normalized = upstream.normalizeProxy(url)
-        if (!normalized.ok) {
-          logger.warn(`[egress] 绑定的代理地址无效，已回退直连：${candidate}（平台级） — ${normalized.reason}`)
-          continue
-        }
-        return { proxy: normalized.proxy }
-      }
-      return undefined
-    }
-  }
-
-  const wrapped: typeof fetch = async (input, init) => {
-    let proxy: unknown
-    try {
-      proxy = await chooseProxy(input, init)
-    } catch (error) {
-      // 判定层自身的意外错误绝不能拖垮业务请求：记日志、直通。
-      logger.warn(`[egress] 出口判定异常，已回退直连：${String(error)}`)
-      proxy = undefined
-    }
-    if (proxy === undefined) return original(input as any, init)
     // 请求体可能是流：proxyFetch 原样转发 init，我们也不触碰 body。
-    return upstream.proxyFetch(input as any, init, proxy)
+    return upstream.proxyFetch(input as any, init, normalized.proxy)
   }
 
   globalThis.fetch = wrapped
