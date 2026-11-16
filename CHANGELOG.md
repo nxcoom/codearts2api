@@ -25,6 +25,10 @@
 - **发送底座**（`proxy-fetch.ts`）：文件路径直插上游 `lib/opencode-proxy.js` 复用
   `proxyFetch`（HTTP(S) ProxyAgent + 自实现 SOCKS5 隧道的那一份，雷区全在它注释里），
   启动期逐项核对导出形状，上游改动启动即失败。
+- **relay 绑定**（`relay-fetch.ts`）：`relay+https://host?token=…` 走宿主原生
+  「HTTP 中继」传输，给反向代理边缘（只放行普通 HTTP、CONNECT 405 的 Serverless
+  托管环境）补位；转发请求注入**原始** fetch，避免包装后自指递归
+  （egress-relay 测试超时暴露）。
 - **绑定存储**：`<home>/proxy-bindings.json`（mtime+size 缓存，外部手改即时生效）。
 - **管理端**：顶栏新增「出口代理」页（每平台卡片：平台默认行 + 各账号行，行内
   保存/清除/测试）；API 挂 `/admin/proxy/api`（GET overview、PUT 平台/账号、POST

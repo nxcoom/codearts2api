@@ -76,7 +76,10 @@ Gemini / Minimax / Qoder / MonkeyCode 五家在「渠道管理」的渠道设置
   兜底，覆盖凭据里看不到的派生 token，如 zcode 聊天腿远端换取的 api-key）；
 - 优先级：**上游渠道自带 > 账号级 > 平台级 > 直连**；
 - 支持 `http://` / `https://` / `socks5://`（`socks5h://` 归一为 socks5），形如
-  `socks5://user:pass@host:port`；行内「测试」按钮回显代理出口 IP 与耗时；
+  `socks5://user:pass@host:port`；另支持 `relay+https://host?token=<共享令牌>`
+  —— 反向代理边缘（Serverless 托管等只放行普通 HTTP 的环境）不能跑 CONNECT，
+  用「HTTP 中继」形态补位，服务端实现见协议说明（`src/core/egress/relay-fetch.ts`
+  顶注）；行内「测试」按钮回显代理出口 IP 与耗时；
 - 绑定存在 `<home>/proxy-bindings.json`，改动即时生效（无需重启）；`EGRESS_PROXY=0`
   可整体关闭。
 
